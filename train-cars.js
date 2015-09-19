@@ -1,55 +1,142 @@
 /* Yolo */
 var clarifai;
 
-$(document).ready(
-  clarifai = new Clarifai(
-    {
-      'accessToken': 'BXFprsmurYcMyhThys79a8ITTUPK96'
-    }
+$(document).ready(function() {
+  clarifai = new Clarifai({'accessToken': 'BrndHIp4zLJdrl0zSFYRd4E6ZMHBhW'});
+});
+
+function positive(imgurl) {
+  clarifai.positive(imgurl, 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
   );
-);
-
-
-function positive(){
-    clarifai.positive('ferrari/1.jpg', 'phish', callback).then(
-        promiseResolved,
-        promiseRejected
-    );
 }
 
-function negative(){
-    clarifai.negative('http://www.mediaspin.com/joel/grateful_dead230582_15-52.jpg', 'phish', callback).then(
-        promiseResolved,
-        promiseRejected
-    );
+function negative(imgurl) {
+  clarifai.negative(imgurl, 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
 }
 
-// explicitly train our concept
-function train(){
-    clarifai.train('phish', callback).then(
-        promiseResolved,
-        promiseRejected
-    );
+function train() {
+  clarifai.train('ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
 }
 
-// make a prediction on a url with our concept
-function predict(){
-    clarifai.predict('http://farm3.static.flickr.com/2161/2141620332_2b741028b3.jpg', 'phish', callback)
-      .then(
-        promiseResolved,
-        promiseRejected
-      );
+function predict(imgurl) {
+  clarifai.predict(imgurl, 'ferrari', callback)
+  .then(function(obj) {
+      if (obj.score < 0.6) {
+        alert("Get out of my shop with your piece of crap.");
+      } else {
+        alert("Now that's what I'm talkinga about.");
+      }
+    },
+    promiseRejected
+  );
 }
 
 function promiseResolved(obj){
-    console.log('Promise resolved', obj);
+  console.log('Promise resolved', obj);
 }
 
 function promiseRejected(obj){
-    console.log('Promise rejected', obj);
+  console.log('Promise rejected', obj);
 }
 
 function callback(obj){
-    console.log('callback', obj);
+  console.log('callback', obj);
 }
 
+function carSubmit() {
+  predict($("#new-car").val());
+}
+
+function samplePositives() {
+  clarifai.positive('http://i.imgur.com/HEoT5xR.png', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+  clarifai.positive('http://i.imgur.com/It5JRaj.jpg', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+  clarifai.positive('http://i.imgur.com/A3xtKcS.jpg', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+  clarifai.positive('http://i.imgur.com/XP4siO4.jpg', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+  clarifai.positive('http://i.imgur.com/k2XGll5.jpg', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+  clarifai.positive('http://i.imgur.com/a7rxnje.jpg', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+  clarifai.positive('http://i.imgur.com/Z0i1R21.jpg', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+  clarifai.positive('http://i.imgur.com/ZXa7T4z.jpg', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+  clarifai.positive('http://i.imgur.com/f5lWEEb.jpg', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+  clarifai.positive('http://i.imgur.com/9Knw6RS.jpg', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+}
+
+function sampleNegatives() {
+  clarifai.negative('http://i.imgur.com/GeMQsiQ.jpg', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+  clarifai.negative('http://i.imgur.com/eXCE9mf.jpg', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+  clarifai.negative('http://i.imgur.com/M0QBOo9.jpg', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+  clarifai.negative('http://i.imgur.com/xzPD0zs.jpg', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+  clarifai.negative('http://i.imgur.com/wjSZq5L.jpg', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+  clarifai.negative('http://i.imgur.com/MMapLsi.jpg', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+  clarifai.negative('http://i.imgur.com/eXCRRzl.jpg', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+  clarifai.negative('http://i.imgur.com/Q1kSJx9.jpg', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+  clarifai.negative('http://i.imgur.com/q2Ccwmq.jpg', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+  clarifai.negative('http://i.imgur.com/EnrVc0B.jpg', 'ferrari', callback).then(
+    promiseResolved,
+    promiseRejected
+  );
+}
