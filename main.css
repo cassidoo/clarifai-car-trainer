@@ -1,6 +1,6 @@
 body {
-  background-color: #F25252;
-  color: white;
+  background-color: #f25252;
+  color: #fff;
   font-family: 'Helvetica', 'Arial', sans-serif;
   margin: 0;
   padding: 0;
@@ -13,6 +13,59 @@ body {
   padding: 15px;
   text-align: center;
   width: 65%;
+}
+
+.new-car-form {
+  width: 50%;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.new-car-form button {
+  background-color: #fff;
+  border: solid 3px #fff;
+  border-radius: 15px;
+  color: #f25252;
+  height: 30px;
+  outline: 0;
+}
+
+.new-car-form button:active {
+  background-color: #f25252;
+  color: #fff;
+}
+
+.new-car-form input[type="text"] {
+  background-color: #f25252;
+  border: solid 3px rgba(255, 255, 255, .5);
+  border-radius: 15px;
+  color: #fff;
+  width: 60%;
+  padding: 5px 15px 6px;
+  transition: border 0.6s;
+}
+
+.new-car-form input[type="text"]:focus,
+.new-car-form input[type="text"].focus {
+  border: solid 3px #fff;
+  outline: 0;
+}
+
+::-webkit-input-placeholder {
+  color: #fff;
+}
+
+:-moz-placeholder { /* Firefox 18- */
+  color: #fff;
+}
+
+::-moz-placeholder {  /* Firefox 19+ */
+  color: #fff;
+}
+
+:-ms-input-placeholder {
+  color: #fff;
 }
 
 .title {
