@@ -30,9 +30,17 @@ function predict(imgurl) {
   clarifai.predict(imgurl, 'ferrari', callback)
   .then(function(obj) {
       if (obj.score < 0.6) {
-        alert("Get out of my shop with your piece of crap.");
+        swal({
+          title: 'WHAT!',
+          text: 'Get that car out of my face.',
+          imageUrl: obj.url
+        });
       } else {
-        alert("Now that's what I'm talkinga about.");
+        swal({
+          title: 'Sweet!',
+          text: 'This car is worthy.',
+          imageUrl: obj.url
+        });
       }
     },
     promiseRejected
