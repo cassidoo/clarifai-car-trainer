@@ -8,27 +8,16 @@ function Clarifai(options){
     this.collectionCreated = false;
     this.addDocumentQueue = [];
     this.baseUrl = options.baseUrl || 'https://api-alpha.clarifai.com/v1/';
-    this.accessToken = options.accessToken;
     this.debug = true;
     if(options.debug === false){
         this.debug = false;
     }
     this.collectionId = options.collectionId || 'default';
     this.nameSpace = options.nameSpace || 'default';
-    this.createCollection(this.collectionId);
-}
-
-// make sure we got what we need in constructor
-Clarifai.prototype.validateConstructor = function(options){
-    if(!$){
-        console.error("Please include jQuery on page for clarifai-basic.js to work");
-        return false;
-    }
-    if(!options.accessToken){
-        console.error("Please provide an accessToken https://developer-alpha.clarifai.com/docs/auth");
-        return false;
-    }
-    return true;
+    this.getAccessToken(options).then(
+        this.createCollection.bind(this),
+        this.onError.bind(this)
+    );
 }
 
 // add a 'positive' url for a concept
@@ -71,7 +60,7 @@ Clarifai.prototype.train = function(concept, callback){
             'headers': {
                 'Authorization': 'Bearer ' + this.accessToken
             }
-        }  
+        }
     ).then(
         function(json){
             if(json.status.status === "OK"){
@@ -119,7 +108,7 @@ Clarifai.prototype.predict = function(url, concept, callback){
             'headers': {
                 'Authorization': 'Bearer ' + this.accessToken
             }
-        }  
+        }
     ).then(
         function(json){
             if(json.status.status === "OK"){
@@ -152,6 +141,77 @@ Clarifai.prototype.predict = function(url, concept, callback){
     return deferred;
 }
 
+// get an accessToken from localStorage or API
+Clarifai.prototype.getAccessToken = function(options){
+    var deferred = $.Deferred();
+    var accessTokenString = localStorage.getItem('clarifai-accessToken');
+    if(accessTokenString){
+        var now = new Date().getTime();
+        var accessToken = JSON.parse(accessTokenString);
+        if(now < accessToken.expireTime){
+            this.accessToken = accessToken.access_token;
+            deferred.resolve(this.accessToken);
+            return deferred;
+        }
+    }
+    if(options.clientId && options.clientSecret){
+        this.fetchAccessToken(options.clientId, options.clientSecret).then(
+            function(json){
+                var now = new Date().getTime();
+                json.expireTime = now + json.expires_in;
+                localStorage.setItem('clarifai-accessToken', JSON.stringify(json));
+                this.accessToken = json.access_token;
+                deferred.resolve(this.accessToken);
+            }.bind(this),
+            function(e){
+                deferred.reject(e);
+            }
+        );
+    }
+    else{
+        deferred.reject('need a clientId and clientSecret');
+    }
+    return deferred;
+}
+
+// make an API call to fetch an accessToken using
+// a clientId and clientSecret
+Clarifai.prototype.fetchAccessToken = function(clientId, clientSecret){
+    var data = {
+        'grant_type': 'client_credentials',
+        'client_id': clientId,
+        'client_secret': clientSecret
+    }
+    return $.ajax(
+        {
+            'type': 'POST',
+            'url': this.baseUrl + 'token',
+            'data': data
+        }
+    );
+}
+
+// make sure we got what we need in constructor
+Clarifai.prototype.validateConstructor = function(options){
+    if(!$){
+        console.error("Please include jQuery on page for clarifai-basic.js to work");
+        return false;
+    }
+    if(!options.clientSecret && !options.clientId){
+        console.error("Please provide a clientId and clientSecret https://developer-alpha.clarifai.com/docs/auth");
+        return false;
+    }
+    if(options.clientId && !options.clientSecret){
+        console.error("Please provide a clientSecret https://developer-alpha.clarifai.com/docs/auth");
+        return false;
+    }
+    if(options.clientSecret && !options.clientId){
+        console.error("Please provide a clientId https://developer-alpha.clarifai.com/docs/auth");
+        return false;
+    }
+    return true;
+}
+
 // create the Document with a url, concept and score
 Clarifai.prototype.createDocument = function(url, concept, score){
     var docid = new Date().getTime();
@@ -179,7 +239,7 @@ Clarifai.prototype.createDocument = function(url, concept, score){
             ],
             'options': {
                 'want_doc_response': true,
-                'recognition_options': 
+                'recognition_options':
                     {
                         'model': 'general-v1.2'
                     }
@@ -208,7 +268,7 @@ Clarifai.prototype.addDocumentToCollection = function(obj){
             'headers': {
                 'Authorization': 'Bearer ' + this.accessToken
             }
-        }  
+        }
     ).then(
         function(json){
             if(json.status.status === "OK"){
@@ -241,64 +301,120 @@ Clarifai.prototype.addDocumentToCollection = function(obj){
 }
 
 // Create a Collection. A Collection represents a group of Documents.
-Clarifai.prototype.createCollection = function(collectionId){
+Clarifai.prototype.createCollection = function(){
     var deferred = $.Deferred();
-    var data = {
-        'collection': {
-            'id': collectionId,
-            'settings': {
-                'max_num_docs': 100000
-            }
-        }
-    }
-    $.ajax(
-        {
-            'type': 'POST',
-            'url': this.baseUrl + 'curator/collections',
-            'data': JSON.stringify(data),
-            'processData': false,
-            'contentType': 'application/json; charset=utf-8',
-            'headers': {
-                'Authorization': 'Bearer ' + this.accessToken
-            }
-        }  
-    ).then(
-        function(json){
-            if(json.status.status === "OK"){
-                this.log("Clarifai: Collection: '" + collectionId + "' created");
-                this.collectionCreated = true;
+    this.listCollections().then(
+        function(collectionCreated){
+            if(collectionCreated === true){
                 var result = {
                     'success': true
                 }
                 deferred.resolve(result);
             }
-            if(json.status.status === 'ERROR'){
-                if(json.status.message.indexOf('Bad request: Collection "' + collectionId + '" already exists for user') !== -1){
-                    this.collectionCreated = true;
-                    var result = {
-                        'success': true
+            else{
+                var data = {
+                    'collection': {
+                        'id': this.collectionId,
+                        'settings': {
+                            'max_num_docs': 100000
+                        }
                     }
-                    deferred.resolve(result);
                 }
-                else{
-                    console.error("Clarifai: Error instantiating Clarifai object", json);
-                    var result = {
-                        'success': false
+                $.ajax(
+                    {
+                        'type': 'POST',
+                        'url': this.baseUrl + 'curator/collections',
+                        'data': JSON.stringify(data),
+                        'processData': false,
+                        'contentType': 'application/json; charset=utf-8',
+                        'headers': {
+                            'Authorization': 'Bearer ' + this.accessToken
+                        }
                     }
-                    deferred.resolve(result);
-                }
+                ).then(
+                    function(json){
+                        if(json.status.status === "OK"){
+                            this.log("Clarifai: Collection: '" + this.collectionId + "' created");
+                            this.collectionCreated = true;
+                            var result = {
+                                'success': true
+                            }
+                            deferred.resolve(result);
+                        }
+                        if(json.status.status === 'ERROR'){
+                            if(json.status.message.indexOf('Bad request: Collection "' + this.collectionId + '" already exists for user') !== -1){
+                                this.collectionCreated = true;
+                                var result = {
+                                    'success': true
+                                }
+                                deferred.resolve(result);
+                            }
+                            else{
+                                console.error("Clarifai: Error instantiating Clarifai object", json);
+                                var result = {
+                                    'success': false
+                                }
+                                deferred.resolve(result);
+                            }
+                        }
+                    }.bind(this),
+                    function(e){
+                        if(e.status === 409){
+                            var result = {
+                                'success': true
+                            }
+                            deferred.resolve(result);
+                        }
+                        else{
+                            console.error("Clarifai: Error instantiating Clarifai object", e);
+                            console.error(e.responseJSON.status_msg);
+                            if(e.responseJSON.status_msg === 'Token is not valid. Please use valid tokens for a application in your account.'){
+                                console.info("Please make sure you are using a valid accessToken https://developer-alpha.clarifai.com/docs/auth");
+                            }
+                            var result = {
+                                'success': false
+                            }
+                            deferred.resolve(result);
+                        }
+                    }.bind(this)
+                );
             }
         }.bind(this),
         function(e){
-            console.error("Clarifai: Error instantiating Clarifai object", e);
-            console.error(e.responseJSON.status_msg);
-            if(e.responseJSON.status_msg === 'Token is not valid. Please use valid tokens for a application in your account.'){
-                console.info("Please make sure you are using a valid accessToken https://developer-alpha.clarifai.com/docs/auth");
+            deferred.reject(e);
+        }.bind(this)
+    );
+    return deferred;
+}
+
+Clarifai.prototype.listCollections = function(){
+    var deferred = $.Deferred();
+    var collectionCreated = false;
+    $.ajax(
+        {
+            'type': 'GET',
+            'url': this.baseUrl + 'curator/collections',
+            'contentType': 'application/json; charset=utf-8',
+            'headers': {
+                'Authorization': 'Bearer ' + this.accessToken
             }
-            var result = {
-                'success': false
+        }
+    ).then(
+        function(json){
+            if(json.status.status === 'OK'){
+                for(var i = 0; i < json.collections.length; i++){
+                    var collectionId = json.collections[i].id;
+                    if(collectionId === this.collectionId){
+                        collectionCreated = true;
+                        break;
+                    }
+                }
             }
-            deferred.resolve(result);
+            deferred.resolve(collectionCreated);
+        }.bind(this),
+        function(e){
+            console.error(e);
+            deferred.reject();
         }.bind(this)
     );
     return deferred;
@@ -311,6 +427,10 @@ Clarifai.prototype.log = function(obj){
     }
 }
 
+// generic error handler
+Clarifai.prototype.onError = function(e){
+    console.error(e);
+}
 // check if we've got require
 if(typeof module !== "undefined"){
     module.exports = Clarifai;
@@ -324,17 +444,18 @@ else{
 
 /*
     to use:
-        
+
     var clarifai = new Clarifai(
         {
-            'accessToken': '{{ YOUR_ACCESS_TOKEN }}'
+            'clientId': 'YOUR_CLIENT_ID',
+            'clientSecret': 'YOUR_CLIENT_SECRET'
         }
     );
     clarifai.positive('http://example.com/image.jpg', 'car', callback);
     clarifai.negative('http://example.com/another-image.jpg', 'car', callback);
-    clarifai.train('car', callback);   
+    clarifai.train('car', callback);
     clarifai.predict('http://example.com/some-new-image.jpg', 'car', callback);
-    
+
 */
 
 

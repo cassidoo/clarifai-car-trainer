@@ -2,7 +2,10 @@
 var clarifai;
 
 $(document).ready(function() {
-  clarifai = new Clarifai({'accessToken': 'BrndHIp4zLJdrl0zSFYRd4E6ZMHBhW'});
+  clarifai = new Clarifai({
+    'clientId': 'KzLHU5r8Ug3BJzBewT8wxK5TKsdiII9z6RBRcMrH',
+    'clientSecret': 'agXNlye7aTAkKtaZyo48ubUZ6Kd3JGBrgu0j685j'
+  });
 });
 
 function positive(imgurl) {
